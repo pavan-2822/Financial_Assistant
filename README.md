@@ -1,3 +1,93 @@
+# FinSight: an LLM-powered personal finance assistant
+
+FinSight answers natural-language questions about your spending ("How much
+did I spend on dining last month?", "Am I over budget on groceries?") by
+combining an LLM with **real, deterministic calculations**. The model never
+guesses a number, it calls a Python function that queries the database.
+
+It can also answer questions grounded in uploaded documents (bank
+statements, tax forms) using retrieval-augmented generation (RAG).
+
+## Why this project is more than "a chatbot wrapper"
+
+LLMs are unreliable at arithmetic and prone to hallucinating plausible-looking
+numbers. FinSight avoids that failure mode with a tool-calling architecture:
+the LLM's job is to understand the question and pick the right tool; a plain
+Python/SQL function does the actual math. Every number in a FinSight answer
+is traceable back to a database query, not model generation.
+
+## Architecture
+Data sources (CSV / Plaid sandbox)
+│
+▼
+Transaction DB (SQLite)
+│
+┌────┴─────┐
+▼ ▼
+Tool layer RAG layer (Chroma)
+(sums, (uploaded statements,
+budgets, tax docs)
+math)
+└────┬─────┘
+▼
+LLM orchestrator (Gemini, tool calling)
+│
+▼
+Chat UI (Streamlit)
+
+
+## Project structure
+
+finsight/
+├── backend/
+│ ├── main.py FastAPI app (chat, upload, budgets, transactions endpoints)
+│ ├── db.py SQLite schema + data access helpers
+│ ├── tools.py Deterministic finance calculations + tool schemas
+│ ├── llm.py Gemini API wrapper with the tool-calling loop
+│ ├── categorize.py Batch LLM categorization of raw transactions
+│ ├── rag.py Document ingestion + retrieval (ChromaDB)
+│ └── generate_sample_data.py Synthetic transaction generator (no bank needed)
+├── frontend/
+│ └── app.py Streamlit chat UI
+├── data/ SQLite DB + Chroma vector store live here (gitignored)
+├── requirements.txt
+└── .env.example
+
+
+## Requirements
+
+- **Python 3.10+** is recommended. The code uses modern type-hint syntax
+  (`str | None`) guarded with `from __future__ import annotations`, which
+  makes it compatible back to Python 3.9. If you hit unrelated syntax
+  errors, upgrading your interpreter is the more durable fix.
+- A free Gemini API key (see below), no credit card required.
+
+## Setup
+
+```bash
+git clone <your-repo-url>
+cd finsight
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 1. Get a free Gemini API key
+
+1. Go to [aistudio.google.com](https://aistudio.google.com) and sign in with a Google account.
+2. Click **Get API key** → **Create API key**. No credit card needed.
+3. Copy the key.
+
+### 2. Add your key
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and paste your key:
+
+GEMINI_API_KEY=your-actual-key-here
+
 
 `python-dotenv` loads this automatically at startup (see `main.py`,
 `generate_sample_data.py`, `categorize.py`), so there's no manual `export`/`set`
