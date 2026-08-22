@@ -17,41 +17,31 @@ Python/SQL function does the actual math. Every number in a FinSight answer
 is traceable back to a database query, not model generation.
 
 ## Architecture
-Data sources (CSV / Plaid sandbox)
-│
-▼
-Transaction DB (SQLite)
-│
-┌────┴─────┐
-▼ ▼
-Tool layer RAG layer (Chroma)
-(sums, (uploaded statements,
-budgets, tax docs)
-math)
-└────┬─────┘
-▼
-LLM orchestrator (Gemini, tool calling)
-│
-▼
-Chat UI (Streamlit)
 
+1. **Data sources**: a CSV export or the Plaid sandbox API feed transactions in.
+2. **Transaction DB (SQLite)**: everything lands here first.
+3. From the database, two layers work in parallel:
+   - **Tool layer**: deterministic Python/SQL functions for sums, budgets, and math.
+   - **RAG layer (Chroma)**: search over uploaded statements and tax documents.
+4. **LLM orchestrator (Gemini, tool calling)**: decides which layer to call and turns the result into a plain-language answer.
+5. **Chat UI (Streamlit)**: where you actually type your question and read the answer.
 
 ## Project structure
 
-finsight/
-├── backend/
-│ ├── main.py FastAPI app (chat, upload, budgets, transactions endpoints)
-│ ├── db.py SQLite schema + data access helpers
-│ ├── tools.py Deterministic finance calculations + tool schemas
-│ ├── llm.py Gemini API wrapper with the tool-calling loop
-│ ├── categorize.py Batch LLM categorization of raw transactions
-│ ├── rag.py Document ingestion + retrieval (ChromaDB)
-│ └── generate_sample_data.py Synthetic transaction generator (no bank needed)
-├── frontend/
-│ └── app.py Streamlit chat UI
-├── data/ SQLite DB + Chroma vector store live here (gitignored)
-├── requirements.txt
-└── .env.example
+- `finsight/`
+  - `backend/`
+    - `main.py`: FastAPI app (chat, upload, budgets, transactions endpoints)
+    - `db.py`: SQLite schema and data access helpers
+    - `tools.py`: deterministic finance calculations and tool schemas
+    - `llm.py`: Gemini API wrapper with the tool-calling loop
+    - `categorize.py`: batch LLM categorization of raw transactions
+    - `rag.py`: document ingestion and retrieval (ChromaDB)
+    - `generate_sample_data.py`: synthetic transaction generator (no bank needed)
+  - `frontend/`
+    - `app.py`: Streamlit chat UI
+  - `data/`: SQLite DB and Chroma vector store live here (gitignored)
+  - `requirements.txt`
+  - `.env.example`
 
 
 ## Requirements
